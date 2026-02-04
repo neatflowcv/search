@@ -1,6 +1,7 @@
 """Search agent entry point."""
 
 import asyncio
+import readline  # noqa: F401 - 한국어 입력 시 백스페이스 지원
 
 from src.search.config import get_settings
 from src.search.graph.builder import build_search_graph
