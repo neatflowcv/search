@@ -17,7 +17,7 @@ data:
     search:
       safe_search: 0
       autocomplete: ""
-      default_lang: "en"
+      default_lang: "auto"
       formats:
         - html
         - json
