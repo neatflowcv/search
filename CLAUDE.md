@@ -15,6 +15,11 @@ code in this repository.
 - 타입: feat, fix, refactor, chore, docs, test
 - 커밋은 의미 있는 단위로 분리
 
+## Code Style
+
+- **`__init__.py` 금지**: 패키지에 `__init__.py` 파일을 생성하지 않음. 직접 모듈
+  경로로 import (예: `from src.search.graph.builder import build_search_graph`)
+
 ## Architecture
 
 This is a Python project using UV as the build system, targeting Python 3.13+.
