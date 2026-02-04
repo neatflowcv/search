@@ -7,18 +7,18 @@ from typing import Literal
 
 
 class LFM25Formatter:
-    """Formats prompts according to LFM2.5 chat template."""
+    """Formats prompts according to LFM2.5 chat template.
 
-    # Special tokens
-    START_OF_TEXT = "<|startoftext|>"
-    IM_START = "<|im_start|>"
-    IM_END = "<|im_end|>"
+    Note: Chat template tokens (<|im_start|>, <|im_end|>, etc.) are NOT included
+    in the output. The llama-server applies these automatically from the GGUF
+    model's embedded chat template.
+    """
+
+    # Tool-related tokens (used in prompt content, not for message framing)
     TOOL_CALL_START = "<|tool_call_start|>"
     TOOL_CALL_END = "<|tool_call_end|>"
     TOOL_LIST_START = "<|tool_list_start|>"
     TOOL_LIST_END = "<|tool_list_end|>"
-    TOOL_RESPONSE_START = "<|tool_response_start|>"
-    TOOL_RESPONSE_END = "<|tool_response_end|>"
 
     def __init__(
         self, mode: Literal["speed", "balanced", "quality"] = "balanced"
@@ -90,17 +90,6 @@ class LFM25Formatter:
         else:
             return self._get_quality_prompt(tool_desc, iteration, max_iterations, today)
 
-    def format_user_message(self, content: str) -> str:
-        """Format user message with LFM2.5 tokens."""
-        return (
-            f"{self.IM_START}user\n{content}{self.IM_END}\n{self.IM_START}assistant\n"
-        )
-
-    def format_tool_response(self, response: str) -> str:
-        """Format tool response with LFM2.5 tokens."""
-        return (
-            f"{self.IM_START}tool\n{response}{self.IM_END}\n{self.IM_START}assistant\n"
-        )
 
     def parse_tool_calls(self, response: str) -> list[dict]:
         """Parse tool calls from assistant response.
@@ -153,8 +142,7 @@ class LFM25Formatter:
         self, tool_desc: str, iteration: int, max_iterations: int, today: str
     ) -> str:
         """Generate speed mode system prompt."""
-        return f"""{self.START_OF_TEXT}{self.IM_START}system
-You are an action orchestrator. Your job is to fulfill user requests by selecting and executing the available tools—no free-form replies.
+        return f"""You are an action orchestrator. Your job is to fulfill user requests by selecting and executing the available tools—no free-form replies.
 
 Today's date: {today}
 
@@ -178,14 +166,13 @@ Your knowledge is outdated; use web search to ground answers even for seemingly 
 - NEVER output normal text to the user. ONLY call tools using {self.TOOL_CALL_START} and {self.TOOL_CALL_END} tokens.
 - Default to web_search when information is missing or stale; keep queries targeted (max 3 per call).
 - Call done when you have gathered enough to answer or performed the required actions.
-</response_protocol>{self.IM_END}"""
+</response_protocol>"""
 
     def _get_balanced_prompt(
         self, tool_desc: str, iteration: int, max_iterations: int, today: str
     ) -> str:
         """Generate balanced mode system prompt."""
-        return f"""{self.START_OF_TEXT}{self.IM_START}system
-You are an action orchestrator. Your job is to fulfill user requests by reasoning briefly and executing the available tools—no free-form replies.
+        return f"""You are an action orchestrator. Your job is to fulfill user requests by reasoning briefly and executing the available tools—no free-form replies.
 
 Today's date: {today}
 
@@ -213,14 +200,13 @@ YOU MUST CALL __reasoning_preamble BEFORE EVERY TOOL CALL IN THIS ASSISTANT TURN
 - Start with __reasoning_preamble and call it before every tool call (including done).
 - Default to web_search when information is missing or stale; keep queries targeted (max 3 per call).
 - Call done only after you have the needed info or actions completed.
-</response_protocol>{self.IM_END}"""
+</response_protocol>"""
 
     def _get_quality_prompt(
         self, tool_desc: str, iteration: int, max_iterations: int, today: str
     ) -> str:
         """Generate quality mode system prompt."""
-        return f"""{self.START_OF_TEXT}{self.IM_START}system
-You are a deep-research orchestrator. Your job is to fulfill user requests with thorough, comprehensive research—no free-form replies.
+        return f"""You are a deep-research orchestrator. Your job is to fulfill user requests with thorough, comprehensive research—no free-form replies.
 
 Today's date: {today}
 
@@ -258,4 +244,4 @@ For any topic, consider searching:
 - Follow an iterative loop: __reasoning_preamble → tool call → __reasoning_preamble → tool call → ... → done.
 - Aim for 4-7 information-gathering calls covering different angles.
 - Call done only after comprehensive research is complete.
-</response_protocol>{self.IM_END}"""
+</response_protocol>"""
