@@ -1,0 +1,176 @@
+"""LangGraph node implementations."""
+
+from typing import Literal
+
+from langchain_core.messages import AIMessage, ToolMessage
+from langgraph.types import Command
+
+from ..clients.searxng import SearXNGClient
+from ..llm.client import get_llm_client
+from ..llm.formatter import LFM25Formatter
+from .state import SearchState
+
+
+async def research_node(
+    state: SearchState,
+) -> Command[Literal["search", "respond"]]:
+    """Main research node that decides next action.
+
+    Calls the LLM to determine whether to search or respond.
+    """
+    formatter = LFM25Formatter(mode=state["mode"])
+    llm = get_llm_client()
+
+    # Build system prompt
+    system_prompt = formatter.format_system_prompt(
+        iteration=state["iteration"],
+        max_iterations=state["max_iterations"],
+    )
+
+    # Build messages for LLM
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": state["query"]},
+    ]
+
+    # Add previous search results if any
+    if state["search_results"]:
+        client = SearXNGClient()
+        from ..clients.searxng import SearchResult
+
+        results = [SearchResult(**r) for r in state["search_results"]]
+        formatted_results = client.format_results_for_llm(results)
+        messages.append({"role": "tool", "content": formatted_results})
+
+    # Call LLM
+    response = await llm.ainvoke(messages)
+    response_text = response.content if hasattr(response, "content") else str(response)
+
+    # Parse tool calls
+    tool_calls = formatter.parse_tool_calls(response_text)
+
+    # Extract reasoning if present
+    reasoning = []
+    for tc in tool_calls:
+        if tc["name"] == "__reasoning_preamble":
+            thought = tc.get("arguments", {}).get("thought", "")
+            if thought:
+                reasoning.append(thought)
+
+    # Check if done
+    is_done = any(tc["name"] == "done" for tc in tool_calls)
+
+    if is_done or state["iteration"] >= state["max_iterations"] - 1:
+        return Command(
+            update={
+                "messages": [AIMessage(content=response_text)],
+                "reasoning": state["reasoning"] + reasoning,
+                "is_complete": True,
+            },
+            goto="respond",
+        )
+
+    # Check for web_search calls
+    search_calls = [tc for tc in tool_calls if tc["name"] == "web_search"]
+    if search_calls:
+        return Command(
+            update={
+                "messages": [AIMessage(content=response_text)],
+                "reasoning": state["reasoning"] + reasoning,
+                "pending_tool_calls": search_calls,
+            },
+            goto="search",
+        )
+
+    # No actionable tool calls, go to respond
+    return Command(
+        update={
+            "messages": [AIMessage(content=response_text)],
+            "reasoning": state["reasoning"] + reasoning,
+            "is_complete": True,
+        },
+        goto="respond",
+    )
+
+
+async def search_node(state: SearchState) -> dict:
+    """Execute web search via SearXNG.
+
+    Processes pending tool calls and returns search results.
+    """
+    client = SearXNGClient()
+
+    # Extract queries from pending tool calls
+    queries: list[str] = []
+    for tc in state.get("pending_tool_calls", []):
+        if tc["name"] == "web_search":
+            tc_queries = tc.get("arguments", {}).get("queries", [])
+            queries.extend(tc_queries)
+
+    if not queries:
+        queries = [state["query"]]
+
+    # Execute search
+    results = await client.search(queries=queries)
+
+    # Format results for message
+    formatted = client.format_results_for_llm(results)
+
+    return {
+        "search_results": [r.model_dump() for r in results],
+        "messages": [ToolMessage(content=formatted, tool_call_id="web_search")],
+        "iteration": state["iteration"] + 1,
+        "pending_tool_calls": [],
+    }
+
+
+async def respond_node(state: SearchState) -> dict:
+    """Generate final response based on search results.
+
+    Uses the collected information to generate a comprehensive response.
+    """
+    llm = get_llm_client()
+
+    # Format context from search results
+    context = ""
+    if state["search_results"]:
+        client = SearXNGClient()
+        from ..clients.searxng import SearchResult
+
+        results = [SearchResult(**r) for r in state["search_results"]]
+        context = client.format_results_for_llm(results)
+
+    # Build response prompt
+    system_prompt = """You are a helpful research assistant. Based on the search results provided, generate a comprehensive and accurate response to the user's query.
+
+Guidelines:
+- Use the search results to provide factual, up-to-date information
+- Cite sources when possible by mentioning the source
+- Be concise but thorough
+- If the search results are insufficient, acknowledge the limitations
+
+Search Results:
+{context}"""
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt.format(
+                context=context or "No search results available."
+            ),
+        },
+        {"role": "user", "content": state["query"]},
+    ]
+
+    # Add reasoning context if available
+    if state["reasoning"]:
+        reasoning_summary = "\n".join(f"- {r}" for r in state["reasoning"])
+        messages[0]["content"] += f"\n\nResearch reasoning:\n{reasoning_summary}"
+
+    response = await llm.ainvoke(messages)
+    response_text = response.content if hasattr(response, "content") else str(response)
+
+    return {
+        "response": response_text,
+        "is_complete": True,
+    }
