@@ -1,14 +1,22 @@
 """LangGraph node implementations."""
 
+import sys
 from typing import Literal
 
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.types import Command
 
 from ..clients.searxng import SearXNGClient
+from ..config import get_settings
 from ..llm.client import get_llm_client
 from ..llm.formatter import LFM25Formatter
 from .state import SearchState
+
+
+def _debug(msg: str) -> None:
+    """Print debug message if debug mode is enabled."""
+    if get_settings().debug:
+        print(f"[DEBUG] {msg}", file=sys.stderr)
 
 
 async def research_node(
@@ -18,6 +26,8 @@ async def research_node(
 
     Calls the LLM to determine whether to search or respond.
     """
+    _debug(f"=== research_node (iteration {state['iteration'] + 1}) ===")
+
     formatter = LFM25Formatter(mode=state["mode"])
     llm = get_llm_client()
 
@@ -40,14 +50,24 @@ async def research_node(
 
         results = [SearchResult(**r) for r in state["search_results"]]
         formatted_results = client.format_results_for_llm(results)
-        messages.append({"role": "tool", "content": formatted_results})
+        messages.append({
+            "role": "tool",
+            "content": formatted_results,
+            "tool_call_id": "web_search",
+        })
+
+    _debug(f"Sending {len(messages)} messages to LLM")
 
     # Call LLM
     response = await llm.ainvoke(messages)
     response_text = response.content if hasattr(response, "content") else str(response)
 
+    _debug(f"LLM response: {response_text[:200]}...")
+
     # Parse tool calls
     tool_calls = formatter.parse_tool_calls(response_text)
+
+    _debug(f"Parsed tool calls: {[tc['name'] for tc in tool_calls]}")
 
     # Extract reasoning if present
     reasoning = []
@@ -56,11 +76,13 @@ async def research_node(
             thought = tc.get("arguments", {}).get("thought", "")
             if thought:
                 reasoning.append(thought)
+                _debug(f"Reasoning: {thought}")
 
     # Check if done
     is_done = any(tc["name"] == "done" for tc in tool_calls)
 
     if is_done or state["iteration"] >= state["max_iterations"] - 1:
+        _debug("-> respond (done or max iterations)")
         return Command(
             update={
                 "messages": [AIMessage(content=response_text)],
@@ -73,6 +95,12 @@ async def research_node(
     # Check for web_search calls
     search_calls = [tc for tc in tool_calls if tc["name"] == "web_search"]
     if search_calls:
+        queries = [
+            q
+            for tc in search_calls
+            for q in tc.get("arguments", {}).get("queries", [])
+        ]
+        _debug(f"-> search (queries: {queries})")
         return Command(
             update={
                 "messages": [AIMessage(content=response_text)],
@@ -83,6 +111,7 @@ async def research_node(
         )
 
     # No actionable tool calls, go to respond
+    _debug("-> respond (no actionable tool calls)")
     return Command(
         update={
             "messages": [AIMessage(content=response_text)],
@@ -98,6 +127,8 @@ async def search_node(state: SearchState) -> dict:
 
     Processes pending tool calls and returns search results.
     """
+    _debug("=== search_node ===")
+
     client = SearXNGClient()
 
     # Extract queries from pending tool calls
@@ -110,8 +141,12 @@ async def search_node(state: SearchState) -> dict:
     if not queries:
         queries = [state["query"]]
 
+    _debug(f"Searching for: {queries}")
+
     # Execute search
     results = await client.search(queries=queries)
+
+    _debug(f"Got {len(results)} results")
 
     # Format results for message
     formatted = client.format_results_for_llm(results)
@@ -129,6 +164,9 @@ async def respond_node(state: SearchState) -> dict:
 
     Uses the collected information to generate a comprehensive response.
     """
+    _debug("=== respond_node ===")
+    _debug(f"Total search results: {len(state['search_results'])}")
+
     llm = get_llm_client()
 
     # Format context from search results

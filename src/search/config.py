@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     research_mode: Literal["speed", "balanced", "quality"] = "balanced"
     max_iterations: int = 5
 
+    # Debug
+    debug: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
