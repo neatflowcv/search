@@ -37,7 +37,7 @@ class PromptFormatter:
                         "queries": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of search queries (max 3)",
+                            "description": "List of search queries (max 10)",
                         }
                     },
                     "required": ["queries"],
@@ -203,7 +203,7 @@ Your knowledge is outdated; use web search to ground answers even for seemingly 
 
 <response_protocol>
 - NEVER output normal text to the user. ONLY call tools using {self.TOOL_CALL_START} and {self.TOOL_CALL_END} tokens.
-- Default to web_search when information is missing or stale; keep queries targeted (max 3 per call).
+- Default to web_search when information is missing or stale; keep queries targeted (max 10 per call).
 - Call done when you have gathered enough to answer or performed the required actions.
 </response_protocol>"""
 
@@ -237,7 +237,7 @@ YOU MUST CALL __reasoning_preamble BEFORE EVERY TOOL CALL IN THIS ASSISTANT TURN
 <response_protocol>
 - NEVER output normal text to the user. ONLY call tools using {self.TOOL_CALL_START} and {self.TOOL_CALL_END} tokens.
 - Start with __reasoning_preamble and call it before every tool call (including done).
-- Default to web_search when information is missing or stale; keep queries targeted (max 3 per call).
+- Default to web_search when information is missing or stale; keep queries targeted (max 10 per call).
 - Call done only after you have the needed info or actions completed.
 </response_protocol>"""
 

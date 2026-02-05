@@ -51,7 +51,7 @@ class SearXNGClient:
         results: list[SearchResult] = []
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for query in queries[:3]:  # Limit to 3 queries
+            for query in queries[:10]:  # Limit to 10 queries
                 params: dict[str, str] = {
                     "q": query,
                     "format": "json",
