@@ -1,4 +1,4 @@
-"""LFM2.5 prompt formatter with special tokens."""
+"""Prompt formatter with special tokens."""
 
 import json
 import re
@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Literal
 
 
-class LFM25Formatter:
-    """Formats prompts according to LFM2.5 chat template.
+class PromptFormatter:
+    """Formats prompts for LLM chat template.
 
     Note: Chat template tokens (<|im_start|>, <|im_end|>, etc.) are NOT included
     in the output. The llama-server applies these automatically from the GGUF

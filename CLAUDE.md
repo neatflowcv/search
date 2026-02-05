@@ -26,12 +26,8 @@ This is a Python project using UV as the build system, targeting Python 3.13+.
 
 ### Documentation Reference (docs/)
 
-The `docs/` directory contains reference implementations for LFM2.5 model
-integration:
+The `docs/` directory contains architecture decisions and patterns:
 
-- **lfm2.5-chat-template.md**: LiquidAI LFM2.5-1.2B-Instruct model reference
-  with ChatML-like token format, tool call syntax, and generation parameters
-- **researcher-lfm2.5.ts**: Prompt generation for research orchestration with
-  three modes (speed/balanced/quality) - implements action orchestrator pattern
-- **writer-lfm2.5.ts**: Prompt generation for content writing with mandatory
-  inline citations
+- **adr-001-model-selection.md**: 검색 에이전트 모델 선택 결정 기록
+- **benchmark-model-comparison.md**: 모델 벤치마크 비교 결과
+- **langgraph-patterns.md**: LangGraph 패턴 정리

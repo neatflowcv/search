@@ -1,7 +1,7 @@
 [project]
 name = "search"
 version = "0.1.0"
-description = "LangGraph-based search agent with LFM2.5 and SearXNG"
+description = "LangGraph-based search agent with SearXNG"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

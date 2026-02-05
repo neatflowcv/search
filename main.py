@@ -39,11 +39,11 @@ async def run_search(query: str) -> str:
 
 def main() -> None:
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Search Agent (LangGraph + LFM2.5 + SearXNG)")
+    parser = argparse.ArgumentParser(description="Search Agent (LangGraph + SearXNG)")
     parser.add_argument("query", help="검색할 질의")
     args = parser.parse_args()
 
-    print("Search Agent (LangGraph + LFM2.5 + SearXNG)")
+    print("Search Agent (LangGraph + SearXNG)")
     print("-" * 50)
     print(f"Query: {args.query}")
     print("\nSearching...\n")

@@ -9,7 +9,7 @@ from langgraph.types import Command
 from ..clients.searxng import SearXNGClient
 from ..config import get_settings
 from ..llm.client import get_llm_client
-from ..llm.formatter import LFM25Formatter
+from ..llm.formatter import PromptFormatter
 from .state import SearchState
 
 
@@ -28,7 +28,7 @@ async def research_node(
     """
     _debug(f"=== research_node (iteration {state['iteration'] + 1}) ===")
 
-    formatter = LFM25Formatter(mode=state["mode"])
+    formatter = PromptFormatter(mode=state["mode"])
     llm = get_llm_client()
 
     # Build system prompt

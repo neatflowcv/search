@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # LLM Configuration
     llm_base_url: str = "http://0.0.0.0:7000/v1"
     llm_api_key: str = "local-key"
-    llm_model: str = "lfm2.5"
+    llm_model: str = "jan-v3-4b"
     llm_temperature: float = 0.1
     llm_top_p: float = 0.1
     llm_max_tokens: int = 2048

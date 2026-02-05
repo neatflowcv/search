@@ -190,7 +190,7 @@ from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(
     base_url="http://localhost:7000/v1",
     api_key="local-key",
-    model="lfm2.5",
+    model="jan-v3-4b",
     temperature=0.1,
 )
 ```
