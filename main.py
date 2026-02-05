@@ -1,7 +1,7 @@
 """Search agent entry point."""
 
+import argparse
 import asyncio
-import readline  # noqa: F401 - 한국어 입력 시 백스페이스 지원
 
 from src.search.config import get_settings
 from src.search.graph.builder import build_search_graph
@@ -39,16 +39,16 @@ async def run_search(query: str) -> str:
 
 def main() -> None:
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Search Agent (LangGraph + LFM2.5 + SearXNG)")
+    parser.add_argument("query", help="검색할 질의")
+    args = parser.parse_args()
+
     print("Search Agent (LangGraph + LFM2.5 + SearXNG)")
     print("-" * 50)
-
-    query = input("Enter your search query: ").strip()
-    if not query:
-        print("No query provided.")
-        return
-
+    print(f"Query: {args.query}")
     print("\nSearching...\n")
-    response = asyncio.run(run_search(query))
+
+    response = asyncio.run(run_search(args.query))
 
     print("-" * 50)
     print("Response:")
