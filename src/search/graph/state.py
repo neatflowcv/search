@@ -38,3 +38,6 @@ class SearchState(TypedDict):
 
     # Pending tool calls to execute
     pending_tool_calls: list[dict]
+
+    # Suggested search queries from initial query analysis
+    suggested_queries: list[str]

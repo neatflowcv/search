@@ -31,6 +31,7 @@ async def run_search(query: str) -> str:
         "response": None,
         "is_complete": False,
         "pending_tool_calls": [],
+        "suggested_queries": [],
     }
 
     result = await graph.ainvoke(initial_state)
