@@ -41,3 +41,9 @@ class SearchState(TypedDict):
 
     # Suggested search queries from initial query analysis
     suggested_queries: list[str]
+
+    # Verification result for the response
+    verification_passed: bool | None
+
+    # Verification feedback if failed
+    verification_feedback: str | None

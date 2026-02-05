@@ -58,6 +58,16 @@ Search Results:
         reasoning_summary = "\n".join(f"- {r}" for r in state["reasoning"])
         messages[0]["content"] += f"\n\nResearch reasoning:\n{reasoning_summary}"
 
+    # Add verification feedback if previous response failed verification
+    if state.get("verification_feedback"):
+        _debug(f"Including verification feedback: {state['verification_feedback']}")
+        messages[0]["content"] += f"""
+
+IMPORTANT - Previous response failed verification:
+{state['verification_feedback']}
+
+Please regenerate the response addressing these issues. Only include information that is directly supported by the search results."""
+
     response = await llm.ainvoke(messages)
     response_text = response.content if hasattr(response, "content") else str(response)
 
