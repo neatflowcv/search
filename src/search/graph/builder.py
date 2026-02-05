@@ -3,7 +3,10 @@
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from .nodes import research_node, respond_node, search_node, suggest_queries_node
+from .nodes.research import research_node
+from .nodes.respond import respond_node
+from .nodes.search import search_node
+from .nodes.suggest_queries import suggest_queries_node
 from .state import SearchState
 
 
